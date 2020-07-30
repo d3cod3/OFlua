@@ -1,9 +1,28 @@
 #include "ofMain.h"
 #include "ofApp.h"
 
+#include "ofAppGLFWWindow.h"
+
+#include "config.h"
+
 //========================================================================
 int main( ){
-    ofSetupOpenGL(1024,768,OF_WINDOW);
-    ofRunApp(new ofApp());
+    ofGLFWWindowSettings settings;
+
+    settings.setGLVersion(3, 2);
+    settings.stencilBits = 0;
+    settings.setSize(WINDOW_START_WIDTH, WINDOW_START_HEIGHT);
+    settings.resizable = true;
+    settings.decorated = true;
+
+    // OFlua main visual-programming window
+    shared_ptr<ofAppGLFWWindow> ofluaWindow = dynamic_pointer_cast<ofAppGLFWWindow>(ofCreateWindow(settings));
+    shared_ptr<ofApp> ofluaApp(new ofApp);
+
+    ofRunApp(ofluaWindow, ofluaApp);
+    ofRunMainLoop();
+
+    // done
+    return EXIT_SUCCESS;
 
 }

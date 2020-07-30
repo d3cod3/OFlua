@@ -12,20 +12,25 @@ Project{
         name: { return FileInfo.baseName(sourceDirectory) }
 
         files: [
+            "src/config.h",
             'src/main.cpp',
             'src/ofApp.cpp',
             'src/ofApp.h',
+            'src/AppTheme.cpp',
+            'src/AppTheme.h',
+            'src/PathWatcher.h',
         ]
 
         of.addons: [
             'ofxGui',
             'ofxOpenCv',
             'ofxOsc',
-            'ofxTrueTypeFontUC',
             'ofxXmlSettings',
 
             'ofxImGui',
             'ofxLua',
+            'ofxThreadedFileDialog',
+            'ofxTrueTypeFontUC',
         ]
 
         // additional flags for the project. the of module sets some
