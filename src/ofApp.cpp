@@ -78,12 +78,6 @@ void ofApp::setup(){
     ImFont* defaultfont = io.Fonts->Fonts[io.Fonts->Fonts.Size - 1];
     io.FontDefault = defaultfont;
 
-    #ifdef TARGET_OSX
-        shortcutFunc = "CMD";
-    #else
-        shortcutFunc = "CTRL";
-    #endif
-
     // Main GUI
     mainTheme = new AppTheme();
     if(isRetina){

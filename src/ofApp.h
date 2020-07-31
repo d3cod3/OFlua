@@ -101,7 +101,6 @@ public:
     // GUI
     ofxImGui::Gui               mainGUI;
     AppTheme*                   mainTheme;
-    string                      shortcutFunc;
     bool                        isRetina;
     float                       scaleFactor;
     ofRectangle                 loggerRect;
