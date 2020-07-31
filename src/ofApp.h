@@ -16,6 +16,7 @@
 #include "PathWatcher.h"
 
 #include "config.h"
+#include "utils.h"
 
 class ofApp : public ofBaseApp, ofxLuaListener {
 
@@ -31,7 +32,7 @@ public:
 
     // Keyboard Events
     void keyPressed(int key);
-    void keyReleased(int key);
+    void keyReleased(ofKeyEventArgs &e);
 
     // Mouse Events
     void mouseMoved(int x, int y );
@@ -64,15 +65,22 @@ public:
     void            clearScript();
     void            reloadScript();
 
+    glm::vec2       reduceToAspectRatio(int _w, int _h);
+    void            scaleTextureToWindow(int theScreenW, int theScreenH);
+    void            toggleWindowFullscreen();
+    void            resetOutputResolution();
+
     void            initDataFolderFromBundle();
 
     ofxLua                      lua;
     string                      filepath;
-    float                       output_width, output_height;
+
 
     ofxThreadedFileDialog       fileDialog;
     PathWatcher                 watcher;
     ofFile                      currentScriptFile;
+    bool                        loadLuaScriptFlag;
+    bool                        saveLuaScriptFlag;
     bool                        scriptLoaded;
     bool                        isError;
     bool                        setupTrigger;
@@ -80,6 +88,15 @@ public:
 
     ofFbo                       *fbo;
     ofImage                     *kuro;
+
+    bool                        isFullscreen;
+    int                         temp_width, temp_height;
+    float                       output_width, output_height;
+    int                         window_actual_width, window_actual_height;
+    glm::vec2                   asRatio;
+    glm::vec2                   window_asRatio;
+    float                       thposX, thposY, thdrawW, thdrawH;
+    bool                        needReset;
 
     // GUI
     ofxImGui::Gui               mainGUI;

@@ -16,13 +16,47 @@ void ofApp::setup(){
     startTime   = ofGetElapsedTimeMillis();
     waitTime    = 200;
 
+    isFullscreen                        = false;
+    thposX = thposY = thdrawW = thdrawH = 0.0f;
+
+    output_width        = STANDARD_TEXTURE_WIDTH;
+    output_height       = STANDARD_TEXTURE_HEIGHT;
+
+    temp_width              = output_width;
+    temp_height             = output_height;
+
+    window_actual_width     = STANDARD_PROJECTOR_WINDOW_WIDTH;
+    window_actual_height    = STANDARD_PROJECTOR_WINDOW_HEIGHT;
+
+    needReset           = false;
+    needToLoadScript    = true;
+
+    scriptLoaded        = false;
+    isError             = false;
+    setupTrigger        = false;
+
+    loadLuaScriptFlag   = false;
+    saveLuaScriptFlag   = false;
+
+    bShowLogger         = false;
+    bShowScriptMenu     = false;
+
     // RETINA FIX
     isRetina = false;
     scaleFactor = 1.0f;
     if(ofGetScreenWidth() >= RETINA_MIN_WIDTH && ofGetScreenHeight() >= RETINA_MIN_HEIGHT){ // RETINA SCREEN
         isRetina = true;
         scaleFactor = 2.0f;
+        if(ofGetScreenWidth() > 3360 && ofGetScreenHeight() > 2100){
+            window_actual_width     = STANDARD_PROJECTOR_WINDOW_WIDTH*2;
+            window_actual_height    = STANDARD_PROJECTOR_WINDOW_HEIGHT*2;
+        }
     }
+    ofSetWindowShape(window_actual_width, window_actual_height);
+    // setup drawing  dimensions
+    asRatio = reduceToAspectRatio(output_width,output_height);
+    window_asRatio = reduceToAspectRatio(ofGetWindowWidth(),ofGetWindowHeight());
+    scaleTextureToWindow(ofGetWindowWidth(),ofGetWindowHeight());
 
     // LOGGER
     appLoggerChannel = shared_ptr<AppLoggerChannel>(new AppLoggerChannel());
@@ -31,6 +65,7 @@ void ofApp::setup(){
     // GUI
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
 
     ofFile fileToRead1(ofToDataPath(MAIN_FONT));
     string absPath1 = fileToRead1.getAbsolutePath();
@@ -60,19 +95,6 @@ void ofApp::setup(){
     // Threaded File Dialogs
     fileDialog.setup();
     ofAddListener(fileDialog.fileDialogEvent, this, &ofApp::onFileDialogResponse);
-
-
-    output_width        = WINDOW_START_WIDTH;
-    output_height       = WINDOW_START_HEIGHT;
-
-    needToLoadScript    = true;
-
-    scriptLoaded        = false;
-    isError             = false;
-    setupTrigger        = false;
-
-    bShowLogger         = false;
-    bShowScriptMenu     = false;
 
     initResolution();
 
@@ -108,6 +130,22 @@ void ofApp::update(){
         needToLoadScript = false;
         loadScript();
         setupTrigger = false;
+    }
+
+    if(needReset){
+        needReset = false;
+        resetOutputResolution();
+    }
+
+    if(loadLuaScriptFlag){
+        loadLuaScriptFlag = false;
+        fileDialog.openFile("load lua script","Select a lua script");
+    }
+
+    if(saveLuaScriptFlag){
+        saveLuaScriptFlag = false;
+        string newFileName = "luaScript_"+ofGetTimestampString("%y%m%d")+".lua";
+        fileDialog.saveFile("save lua script","Save new Lua script as",newFileName);
     }
 
     ///////////////////////////////////////////
@@ -153,10 +191,10 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    ofBackground(30);
+    ofBackground(0);
 
     ofSetColor(255);
-    fbo->draw(0,0);
+    fbo->draw(thposX, thposY, thdrawW, thdrawH);
 
     // GUI
     ofSetColor(255,255,255);
@@ -168,6 +206,78 @@ void ofApp::drawImGuiInterface(){
     mainGUI.begin();
     {
 
+        // script menu
+        // ---------------------------------------------
+        if(bShowScriptMenu){
+            ImGui::SetNextWindowSize(ImVec2(scriptMenuRect.width,scriptMenuRect.height), ImGuiCond_Always);
+            ImGui::SetNextWindowPos(ImVec2(scriptMenuRect.x,scriptMenuRect.y), ImGuiCond_Always);
+            if (!ImGui::Begin("Lua Script Config",nullptr,ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoResize))
+            {
+                ImGui::End();
+                return;
+            }
+
+            // Lua Script Config content
+            ImGui::Spacing();
+
+            if(ImGui::InputInt("Width",&temp_width)){
+                if(temp_width > OUTPUT_TEX_MAX_WIDTH){
+                    temp_width = output_width;
+                }
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("(?)");
+            if (ImGui::IsItemHovered()){
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                ImGui::TextUnformatted("You can set the output resolution WxH (limited for now at max. 4800x4800)");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+
+            if(ImGui::InputInt("Height",&temp_height)){
+                if(temp_height > OUTPUT_TEX_MAX_HEIGHT){
+                    temp_height = output_height;
+                }
+            }
+            ImGui::Spacing();
+            if(ImGui::Button("APPLY",ImVec2(-1,26))){
+                needReset = true;
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            ImGui::Text("Loaded File:");
+            ImGui::Text("%s",currentScriptFile.getFileName().c_str());
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s",currentScriptFile.getAbsolutePath().c_str());
+
+            ImGui::Spacing();
+            if(ImGui::Button("New",ImVec2(-1,26))){
+                saveLuaScriptFlag = true;
+            }
+            ImGui::Spacing();
+            if(ImGui::Button("Open",ImVec2(-1,26))){
+                loadLuaScriptFlag = true;
+            }
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Separator();
+            ImGui::Spacing();
+            if(ImGui::Button("Clear Script",ImVec2(-1,26))){
+                clearScript();
+            }
+            ImGui::Spacing();
+            if(ImGui::Button("Reload Script",ImVec2(-1,26))){
+                reloadScript();
+            }
+
+            ImGui::End();
+
+        }
+        // ---------------------------------------------
 
         // logger
         // ---------------------------------------------
@@ -186,6 +296,7 @@ void ofApp::drawImGuiInterface(){
 void ofApp::initGuiPositions(){
     float loggerH = max(LOGGER_HEIGHT,ofGetWindowHeight()/3);
     loggerRect.set(0,ofGetWindowHeight()-(loggerH*scaleFactor),ofGetWindowWidth(),loggerH*scaleFactor);
+    scriptMenuRect.set(0,0,ofGetWindowWidth()/4,ofGetWindowHeight()-(loggerH*scaleFactor));
 }
 
 //--------------------------------------------------------------
@@ -207,12 +318,22 @@ void ofApp::keyPressed(int key){
 }
 
 //--------------------------------------------------------------
-void ofApp::keyReleased(int key){
-    lua.scriptKeyReleased(key);
+void ofApp::keyReleased(ofKeyEventArgs &e){
 
-    if(key == 'l' || key == 'L'){
+    // OSX: CMD-F, WIN/LINUX: CTRL-F    (FULLSCREEN)
+    if(e.hasModifier(MOD_KEY) && e.keycode == 70){
+        toggleWindowFullscreen();
+    // OSX: CMD-L, WIN/LINUX: CTRL-L    (SHOW LOGGER)
+    }else if(e.hasModifier(MOD_KEY) && e.keycode == 76){
         bShowLogger = !bShowLogger;
+    // OSX: CMD-G, WIN/LINUX: CTRL-G    (SHOW GUI)
+    }else if(e.hasModifier(MOD_KEY) && e.keycode == 71){
+        bShowScriptMenu = !bShowScriptMenu;
     }
+
+    //ofLog(OF_LOG_NOTICE,"%i",e.keycode);
+
+    lua.scriptKeyReleased(e.key);
 }
 
 //--------------------------------------------------------------
@@ -244,6 +365,9 @@ void ofApp::mouseScrolled(int x, int y, float scrollX, float scrollY){
 void ofApp::windowResized(int w, int h){
     if(loaded){
         initGuiPositions();
+
+        window_asRatio = reduceToAspectRatio(ofGetWindowWidth(),ofGetWindowHeight());
+        scaleTextureToWindow(ofGetWindowWidth(),ofGetWindowHeight());
     }
 }
 
@@ -257,7 +381,7 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 
 //--------------------------------------------------------------
 void ofApp::onFileDialogResponse(ofxThreadedFileDialogResponse &response){
-    if(response.id == "open script"){
+    if(response.id == "load lua script"){
         ofFile file(response.filepath);
         if (file.exists()){
             string fileExtension = ofToUpper(file.getExtension());
@@ -266,6 +390,31 @@ void ofApp::onFileDialogResponse(ofxThreadedFileDialogResponse &response){
                 reloadScript();
             }
         }
+    }else if(response.id == "save lua script"){
+        ofFile fileToRead(ofToDataPath("scripts/empty.lua"));
+
+        ofFile tempPF(response.filepath);
+        string preSanitizeFN = tempPF.getFileName();
+        sanitizeFilename(preSanitizeFN);
+        string sanitizedPatchFile = tempPF.getEnclosingDirectory()+preSanitizeFN;
+        ofFile tempFile(sanitizedPatchFile);
+        string tempFileName = tempFile.getFileName();
+        string finalTempFileName = tempFile.getFileName().substr(0,tempFileName.find_last_of('.'));
+
+        // create containing folder
+        ofDirectory::createDirectory(tempPF.getEnclosingDirectory()+finalTempFileName+"/");
+
+        ofFile newLuaFile (tempPF.getEnclosingDirectory()+finalTempFileName+"/"+finalTempFileName+".lua");
+
+        // copy file
+        ofFile::copyFromTo(fileToRead.getAbsolutePath(),newLuaFile.getAbsolutePath(),true,true);
+
+        // create data/ folder
+        ofDirectory::createDirectory(newLuaFile.getEnclosingDirectory()+"data/");
+
+        filepath = newLuaFile.getAbsolutePath();
+
+        reloadScript();
     }
 }
 
@@ -347,6 +496,9 @@ void ofApp::openScript(string scriptFile){
 
 //--------------------------------------------------------------
 void ofApp::loadScript(){
+
+    currentScriptFile.open(filepath);
+
     lua.doScript(filepath, true);
 
     tempstring = "OUTPUT_WIDTH = "+ofToString(output_width);
@@ -398,6 +550,85 @@ void ofApp::reloadScript(){
     scriptLoaded = false;
     needToLoadScript = true;
     isError = false;
+}
+
+//--------------------------------------------------------------
+glm::vec2 ofApp::reduceToAspectRatio(int _w, int _h){
+    glm::vec2 _res;
+    int temp = _w*_h;
+    if(temp>0){
+        for(int tt = temp; tt>1; tt--){
+            if((_w%tt==0) && (_h%tt==0)){
+                _w/=tt;
+                _h/=tt;
+            }
+        }
+    }else if (temp<0){
+        for (int tt = temp; tt<-1; tt++){
+            if ((_w%tt==0) && (_h%tt==0)){
+                _w/=tt;
+                _h/=tt;
+            }
+        }
+    }
+    _res = glm::vec2(_w,_h);
+    return _res;
+}
+
+//--------------------------------------------------------------
+void ofApp::scaleTextureToWindow(int theScreenW, int theScreenH){
+    // wider texture than screen
+    if(asRatio.x/asRatio.y >= window_asRatio.x/window_asRatio.y){
+        thdrawW           = theScreenW;
+        thdrawH           = (output_height*theScreenW) / output_width;
+        thposX            = 0;
+        thposY            = (theScreenH-thdrawH)/2.0f;
+    // wider screen than texture
+    }else{
+        thdrawW           = (output_width*theScreenH) / output_height;
+        thdrawH           = theScreenH;
+        thposX            = (theScreenW-thdrawW)/2.0f;
+        thposY            = 0;
+    }
+    //ofLog(OF_LOG_NOTICE,"Window: %ix%i, Texture; %fx%f at %f,%f",theScreenW,theScreenH,thdrawW,thdrawH,thposX,thposY);
+}
+
+//--------------------------------------------------------------
+void ofApp::toggleWindowFullscreen(){
+    isFullscreen = !isFullscreen;
+    ofToggleFullscreen();
+
+    if(!isFullscreen){
+        ofSetWindowShape(window_actual_width, window_actual_height);
+        scaleTextureToWindow(window_actual_width, window_actual_height);
+    }else{
+        scaleTextureToWindow(ofGetScreenWidth(),ofGetScreenHeight());
+    }
+}
+
+//--------------------------------------------------------------
+void ofApp::resetOutputResolution(){
+
+    if(output_width != temp_width || output_height != temp_height){
+        output_width = temp_width;
+        output_height = temp_height;
+
+        resetResolution(output_width,output_height);
+
+        asRatio = reduceToAspectRatio(output_width,output_height);
+
+        if(!isFullscreen){
+            window_asRatio = reduceToAspectRatio(ofGetWindowWidth(),ofGetWindowHeight());
+            scaleTextureToWindow(ofGetWindowWidth(),ofGetWindowHeight());
+        }else{
+            window_asRatio = reduceToAspectRatio(ofGetScreenWidth(),ofGetScreenHeight());
+            scaleTextureToWindow(ofGetScreenWidth(),ofGetScreenHeight());
+        }
+
+
+        ofLog(OF_LOG_NOTICE,"RESOLUTION CHANGED TO %ix%i",static_cast<int>(output_width),static_cast<int>(output_height));
+    }
+
 }
 
 //--------------------------------------------------------------

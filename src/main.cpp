@@ -11,7 +11,7 @@ int main( ){
 
     settings.setGLVersion(3, 2);
     settings.stencilBits = 0;
-    settings.setSize(WINDOW_START_WIDTH, WINDOW_START_HEIGHT);
+    settings.setSize(STANDARD_PROJECTOR_WINDOW_WIDTH, STANDARD_PROJECTOR_WINDOW_HEIGHT);
     settings.resizable = true;
     settings.decorated = true;
 

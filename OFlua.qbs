@@ -13,6 +13,7 @@ Project{
 
         files: [
             "src/config.h",
+            'src/utils.h',
             'src/main.cpp',
             'src/ofApp.cpp',
             'src/ofApp.h',
