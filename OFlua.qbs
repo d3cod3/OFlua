@@ -30,7 +30,6 @@ Project{
             'ofxImGui',
             'ofxLua',
             'ofxThreadedFileDialog',
-            'ofxTrueTypeFontUC',
         ]
 
         // additional flags for the project. the of module sets some
