@@ -23,9 +23,13 @@ Project{
         ]
 
         of.addons: [
+            'ofxAssimpModelLoader',
             'ofxGui',
+            'ofxNetwork',
             'ofxOpenCv',
             'ofxOsc',
+            'ofxSvg',
+            'ofxVectorGraphics',
             'ofxXmlSettings',
 
             'ofxImGui',

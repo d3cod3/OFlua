@@ -1,17 +1,22 @@
 #pragma mark once
 
 #define PACKAGE	"OFlua"
-#define	VERSION	"0.1.0"
+#define	VERSION	"0.1.1"
 #define DESCRIPTION "Live Visual Patching Creative-Coding Platform"
 #define DEVELOPERS "Emanuele Mazza"
 #define TAGS "openframeworks,macos,linux,windows,creative-coding,video,audio,graphics,live-coding,creative-coding"
 
-#define WINDOW_TITLE "OFlua 0.1.0"
+#define WINDOW_TITLE "OFlua 0.1.1"
 
 #define WINDOW_START_WIDTH                  1280
 #define WINDOW_START_HEIGHT                 720
 
-#define MOD_KEY                             OF_KEY_SUPER
+// choose modifier key based on platform
+#ifdef TARGET_OSX
+    #define MOD_KEY OF_KEY_SUPER
+#else
+    #define MOD_KEY OF_KEY_CONTROL
+#endif
 
 #define RETINA_MIN_WIDTH                    2560
 #define RETINA_MIN_HEIGHT                   1600
