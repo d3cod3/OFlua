@@ -80,11 +80,11 @@ void ofApp::setup(){
 
     // Main GUI
     mainTheme = new AppTheme();
+    mainGUI.setup();
+    mainGUI.setTheme(mainTheme);
     if(isRetina){
         mainTheme->fixForRetinaScreen();
     }
-    mainGUI.setup();
-    mainGUI.setTheme(mainTheme);
 
     // Threaded File Dialogs
     fileDialog.setup();
@@ -179,6 +179,14 @@ void ofApp::update(){
     if(!loaded && ofGetElapsedTimeMillis()-startTime > waitTime){
         loaded = true;
         initGuiPositions();
+        if(isRetina){
+            ofSetWindowShape(1280*2, 720*2);
+        }
+
+        // setup drawing  dimensions
+        asRatio = reduceToAspectRatio(output_width,output_height);
+        window_asRatio = reduceToAspectRatio(ofGetWindowWidth(),ofGetWindowHeight());
+        scaleTextureToWindow(ofGetWindowWidth(),ofGetWindowHeight());
     }
 
 }
@@ -235,7 +243,7 @@ void ofApp::drawImGuiInterface(){
                 }
             }
             ImGui::Spacing();
-            if(ImGui::Button("APPLY",ImVec2(-1,26))){
+            if(ImGui::Button("APPLY",ImVec2(-1,26*scaleFactor))){
                 needReset = true;
             }
 
@@ -249,22 +257,22 @@ void ofApp::drawImGuiInterface(){
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s",currentScriptFile.getAbsolutePath().c_str());
 
             ImGui::Spacing();
-            if(ImGui::Button("New",ImVec2(-1,26))){
+            if(ImGui::Button("New",ImVec2(-1,26*scaleFactor))){
                 saveLuaScriptFlag = true;
             }
             ImGui::Spacing();
-            if(ImGui::Button("Open",ImVec2(-1,26))){
+            if(ImGui::Button("Open",ImVec2(-1,26*scaleFactor))){
                 loadLuaScriptFlag = true;
             }
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Separator();
             ImGui::Spacing();
-            if(ImGui::Button("Clear Script",ImVec2(-1,26))){
+            if(ImGui::Button("Clear Script",ImVec2(-1,26*scaleFactor))){
                 clearScript();
             }
             ImGui::Spacing();
-            if(ImGui::Button("Reload Script",ImVec2(-1,26))){
+            if(ImGui::Button("Reload Script",ImVec2(-1,26*scaleFactor))){
                 reloadScript();
             }
 
